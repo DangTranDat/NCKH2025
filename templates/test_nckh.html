@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Quality Monitoring</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #343a40;
+            margin: 0;
+            padding: 0;
+        }
+        #content {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        #chartContainer, #dataTableContainer, #correlationMatrixContainer, #statisticsContainer {
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        table, th, td {
+            border: 1px solid #dee2e6;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            text-transform: uppercase;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        tr:nth-child(even) {
+            background-color: #f1f1f1;
+        }
+        tr:hover {
+            background-color: #e9ecef;
+        }
+        .chart {
+            width: 100%;
+            height: 400px;
+        }
+        #controlSliders {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .toggle-container label {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ddd;
+            transition: 0.4s;
+            border-radius: 25px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 19px;
+            width: 19px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #007bff;
+        }
+        input:checked + .slider:before {
+            transform: translateX(25px);
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        /* Media Queries for mobile devices */
+        @media (max-width: 768px) {
+            #content {
+                padding: 15px;
+                margin: 10px;
+            }
+            h1, h2 {
+                font-size: 1.5em;
+            }
+            .toggle-container {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 0;
+            }
+            .toggle-container label {
+                margin-bottom: 10px;
+            }
+            #controlSliders {
+                padding: 15px;
+            }
+            .chart {
+                height: 300px;
+            }
+            table th, table td {
+                padding: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .switch {
+                width: 45px;
+                height: 22px;
+            }
+            .slider:before {
+                height: 17px;
+                width: 17px;
+            }
+            h1, h2 {
+                font-size: 1.2em;
+            }
+            table th, table td {
+                padding: 6px;
+                font-size: 12px;
+            }
+            .chart {
+                height: 250px;
+            }
+        }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div id="content">
+        <h1>Giám sát không khí</h1>
+        <div id="controlSliders">
+            <h2>Điều khiển thiết bị</h2>
+            <div class="toggle-container">
+                <label for="lightSwitch">Đèn</label>
+                <label class="switch">
+                    <input type="checkbox" id="lightSwitch" onchange="toggleDevice('light', this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-container">
+                <label for="fanSwitch">Quạt</label>
+                <label class="switch">
+                    <input type="checkbox" id="fanSwitch" onchange="toggleDevice('fan', this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <div id="chartContainer">
+            <div id="airQualityChart" class="chart"></div>
+        </div>
+        <div id="dataTableContainer">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Air Quality (ppm)</th>
+                        <th>Temperature (°C)</th>
+                        <th>Humidity (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div id="correlationMatrixContainer">
+            <h2>Tương quan giữa các thông số</h2>
+            <div id="correlationMatrix"></div>
+        </div>
+        <div id="statisticsContainer">
+            <h2>Thống kê chất lượng không khí</h2>
+            <div id="statistics"></div>
+        </div>
+    </div>
+
+    <script>
+        // Hàm gửi lệnh điều khiển thiết bị
+        function toggleDevice(device, state) {
+            const action = state ? 'on' : 'off';
+            fetch('/api/control', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ device: device, action: action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Không thể gửi lệnh điều khiển.');
+            });
+        }
+
+        // Mã hiện tại để hiển thị biểu đồ, bảng dữ liệu và thống kê (không thay đổi)
+        fetch('/api/chart-data')
+            .then(response => response.json())
+            .then(data => {
+                const airQuality = data.AirQuality;
+                const temperature = data.Temperature;
+                const humidity = data.Humidity;
+                const timestamps = data.timestamps;
+                const futureTimestamps = data.FutureTimestamps;
+                const airQualityPrediction = data.AirQualityTrendPrediction;
+                const temperaturePrediction = data.TemperatureTrendPrediction;
+                const humidityPrediction = data.HumidityTrendPrediction;
+                const correlationMatrix = data.CorrelationMatrix;
+                const statistics = data.Statistics;
+
+                const tableBody = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
+                const displayDataCount = 20;
+
+                // Hiển thị dữ liệu hiện tại trong bảng
+                tableBody.innerHTML = '';
+                for (let i = timestamps.length - displayDataCount; i < timestamps.length; i++) {
+                    const row = tableBody.insertRow();
+                    row.insertCell(0).innerText = timestamps[i];
+                    row.insertCell(1).innerText = airQuality[i];
+                    row.insertCell(2).innerText = temperature[i];
+                    row.insertCell(3).innerText = humidity[i];
+                }
+
+                // Vẽ biểu đồ với dữ liệu hiện tại và dự đoán xu hướng
+                const trace1 = {
+                    x: timestamps,
+                    y: airQuality,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Chất lượng không khí (ppm)',
+                    line: { color: 'rgb(75, 192, 192)' }
+                };
+
+                const trace2 = {
+                    x: timestamps,
+                    y: temperature,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Nhiệt độ (°C)',
+                    line: { color: 'rgb(255, 99, 132)' }
+                };
+
+                const trace3 = {
+                    x: timestamps,
+                    y: humidity,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Độ ẩm (%)',
+                    line: { color: 'rgb(54, 162, 235)' }
+                };
+
+                const forecastAirQuality = {
+                    x: futureTimestamps,
+                    y: airQualityPrediction,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Xu hướng chất lượng không khí',
+                    line: { color: 'rgb(153, 102, 255)', dash: 'dash' }
+                };
+
+                const forecastTemperature = {
+                    x: futureTimestamps,
+                    y: temperaturePrediction,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Xu hướng nhiệt độ',
+                    line: { color: 'rgb(255, 159, 64)', dash: 'dash' }
+                };
+
+                const forecastHumidity = {
+                    x: futureTimestamps,
+                    y: humidityPrediction,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Xu hướng độ ẩm',
+                    line: { color: 'rgb(255, 205, 86)', dash: 'dash' }
+                };
+
+                const layout = {
+                    title: 'Biểu đồ giám sát và dự báo xu hướng',
+                    xaxis: { title: 'Timestamp' },
+                    yaxis: { title: 'Values' },
+                    showlegend: true
+                };
+
+                Plotly.newPlot('airQualityChart', [trace1, trace2, trace3, forecastAirQuality, forecastTemperature, forecastHumidity], layout);
+
+                // Hiển thị ma trận tương quan
+                const correlationMatrixDiv = document.getElementById('correlationMatrix');
+                let correlationHtml = '<table><thead><tr><th></th><th>Chất lượng không khí</th><th>Nhiệt độ</th><th>Độ ẩm</th></tr></thead><tbody>';
+
+                // Tạo bảng ma trận tương quan từ dữ liệu JSON
+                const keys = ['air_quality', 'temperature', 'humidity'];
+                keys.forEach((key1) => {
+                    correlationHtml += `<tr><td>${key1}</td>`;
+                    keys.forEach((key2) => {
+                        const correlation = correlationMatrix[key1][key2];
+                        correlationHtml += `<td>${correlation.toFixed(2)}</td>`;
+                    });
+                    correlationHtml += '</tr>';
+                });
+
+                correlationHtml += '</tbody></table>';
+                correlationMatrixDiv.innerHTML = correlationHtml;
+
+                // Hiển thị thống kê từ cơ sở dữ liệu
+                const statisticsDiv = document.getElementById('statistics');
+                const statsHtml = `
+                    <table>
+                        <thead>
+                            <tr><th>Thông số</th><th>Giá trị</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Nhiệt độ trung bình</td><td>${statistics.temperature_mean.toFixed(1)}</td></tr>
+                            <tr><td>Độ ẩm trung bình</td><td>${statistics.humidity_mean.toFixed(1)}</td></tr>
+                            <tr><td>Chất lượng không khí trung bình</td><td>${statistics.air_quality_mean.toFixed(1)}</td></tr>
+                            <tr><td>Độ lệch chuẩn nhiệt độ</td><td>${statistics.temperature_std.toFixed(1)}</td></tr>
+                            <tr><td>Độ lệch chuẩn độ ẩm</td><td>${statistics.humidity_std.toFixed(1)}</td></tr>
+                            <tr><td>Độ lệch chuẩn chất lượng không khí</td><td>${statistics.air_quality_std.toFixed(1)}</td></tr>
+                            <tr><td>Thời điểm tính toán</td><td>${statistics.timestamp}</td></tr>
+                        </tbody>
+                    </table>
+                `;
+                statisticsDiv.innerHTML = statsHtml;
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    </script>
+</body>
+</html>
